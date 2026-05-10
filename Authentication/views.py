@@ -94,7 +94,13 @@ class RegisterView(APIView):
             email_data = {
                 'email_subject': 'Verify your email with link and OTP',
                 'email_body': f'Click the link to verify your account:\n{verify_link}\n\nOr use this OTP: {otp}\n\nOTP is valid for 10 minutes.',
-                'to_email': user.email
+                'to_email': user.email,
+                'context': {
+                    'subject': 'Verify your email',
+                    'body': f'Use the OTP below or click the button to verify your account:\n\nOTP: {otp}\n\nOTP is valid for 10 minutes.',
+                    'cta_url': verify_link,
+                    'cta_text': 'Verify Email',
+                }
             }
             Util.send_email(email_data)
 
@@ -548,7 +554,13 @@ class SendResetPasswordEmailView(APIView):
                 email_data = {
                     'email_subject': 'Reset Your Password',
                     'email_body': f'Click the link to reset your password:\n{reset_link}',
-                    'to_email': user.email
+                    'to_email': user.email,
+                    'context': {
+                        'subject': 'Reset your password',
+                        'body': f'Please click the button below to reset your password.',
+                        'cta_url': reset_link,
+                        'cta_text': 'Reset Password',
+                    }
                 }
                 Util.send_email(email_data)
 
@@ -662,7 +674,13 @@ class ResendVerificationEmailView(APIView):
             email_data = {
                 'email_subject': 'Verify your email (Resent) - Link and OTP',
                 'email_body': f'Click the link to verify your account:\n{verify_link}\n\nOr use this OTP: {otp}\n\nOTP is valid for 10 minutes.',
-                'to_email': user.email
+                'to_email': user.email,
+                'context': {
+                    'subject': 'Verify your email',
+                    'body': f'Use the OTP below or click the button to verify your account:\n\nOTP: {otp}\n\nOTP is valid for 10 minutes.',
+                    'cta_url': verify_link,
+                    'cta_text': 'Verify Email',
+                }
             }
             Util.send_email(email_data)
 

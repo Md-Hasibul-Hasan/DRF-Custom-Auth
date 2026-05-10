@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f7;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            margin-bottom: 24px;
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+        }
+        .body-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            white-space: pre-line;
+        }
+        .footer {
+            font-size: 14px;
+            color: #777777;
+            margin-top: 24px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2f7ae6;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p class="title">{{ subject }}</p>
+        </div>
+
+        <div class="body-text">
+            {{ body }}
+        </div>
+
+        {% if cta_url and cta_text %}
+            <a class="button" href="{{ cta_url }}">{{ cta_text }}</a>
+        {% endif %}
+
+        <div class="footer">
+            <p>If you did not request this email, please ignore it.</p>
+        </div>
+    </div>
+</body>
+</html>
