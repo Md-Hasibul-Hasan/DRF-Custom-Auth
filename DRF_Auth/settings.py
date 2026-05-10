@@ -17,7 +17,7 @@ SECRET_KEY = 'django-insecure-)!1#myf_$i=esclsajsg(r6*@4i*a^6d6%oems@htg0-d+nn-s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'auth_api'
+    'Authentication'
 ]
 
 MIDDLEWARE = [
@@ -130,7 +130,7 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 # LOGIN_URL = '/login/'
 
-AUTH_USER_MODEL = 'auth_api.User'
+AUTH_USER_MODEL = 'Authentication.User'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -152,6 +152,9 @@ REST_FRAMEWORK = {
     # 'DEFAULT_RENDERER_CLASSES': [
     #     'rest_framework.renderers.JSONRenderer',
     # ]
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ]
 }
 
 

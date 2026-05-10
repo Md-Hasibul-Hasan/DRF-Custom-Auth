@@ -263,7 +263,7 @@ class LoginView(APIView):
                         # from rest_framework_simplejwt.tokens import RefreshToken
                         refresh = RefreshToken.for_user(user)
                         refresh['requires_2fa'] = True
-                        refresh['exp'] = timezone.now() + timedelta(minutes=5)
+                        refresh['exp'] = timezone.now() + timedelta(minutes=5)   # need to work here
                         
                         return Response({
                             'msg': '2FA verification required. Please check your email for the verification code',
