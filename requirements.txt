@@ -13,3 +13,4 @@ requests==2.33.1
 sqlparse==0.5.5
 tzdata==2026.2
 urllib3==2.7.0
+user-agents==2.2.0

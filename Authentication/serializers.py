@@ -155,7 +155,7 @@ class SendResetPasswordEmailSerializer(serializers.Serializer):
     def validate(self, data):
         email = data.get('email')
         if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('User does not exist')
+            raise serializers.ValidationError('User exists or not cant say')
         return data
 
 
@@ -415,6 +415,9 @@ class UserSessionSerializer(serializers.ModelSerializer):
             'id',
             'ip_address',
             'user_agent',
+            'browser',
+            'operating_system',
+            'device_type',
             'created_at',
             'last_activity',
             'is_active',

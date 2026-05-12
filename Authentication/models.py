@@ -1,8 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,PermissionsMixin
+from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
+import secrets
 
 # Create your models here.
 
@@ -64,12 +66,12 @@ class User(AbstractBaseUser,PermissionsMixin):
     last_email_change_otp_sent_at = models.DateTimeField(null=True, blank=True)
     
     # Email verification OTP fields
-    otp = models.CharField(max_length=6, null=True, blank=True)
+    otp = models.CharField(max_length=128, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     otp_expires_at = models.DateTimeField(null=True, blank=True)
 
     # Password reset OTP fields
-    password_reset_otp = models.CharField(max_length=6, null=True, blank=True)
+    password_reset_otp = models.CharField(max_length=128, null=True, blank=True)
     password_reset_otp_created_at = models.DateTimeField(null=True, blank=True)
     password_reset_otp_expires_at = models.DateTimeField(null=True, blank=True)
     password_reset_otp_attempts = models.IntegerField(default=0)
@@ -77,14 +79,14 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     # Pending email change fields
     pending_email = models.EmailField(max_length=255, null=True, blank=True)
-    pending_email_otp = models.CharField(max_length=6, null=True, blank=True)
+    pending_email_otp = models.CharField(max_length=128, null=True, blank=True)
     pending_email_otp_created_at = models.DateTimeField(null=True, blank=True)
     pending_email_otp_expires_at = models.DateTimeField(null=True, blank=True)
     
     # 2FA fields
     is_2fa_enabled = models.BooleanField(default=False)
     two_fa_method = models.CharField(max_length=20, choices=[('email', 'Email OTP')], default='email', null=True, blank=True)
-    two_fa_otp = models.CharField(max_length=6, null=True, blank=True)
+    two_fa_otp = models.CharField(max_length=128, null=True, blank=True)
     two_fa_otp_created_at = models.DateTimeField(null=True, blank=True)
     two_fa_otp_expires_at = models.DateTimeField(null=True, blank=True)
     two_fa_attempts = models.IntegerField(default=0)
@@ -97,6 +99,14 @@ class User(AbstractBaseUser,PermissionsMixin):
     REQUIRED_FIELDS = ['name']
 
     objects = UserManager()
+
+    def _check_otp(self, stored_otp, otp):
+        if not stored_otp:
+            return False
+        return check_password(otp, stored_otp) or stored_otp == otp
+
+    def _generate_otp(self):
+        return str(secrets.randbelow(900000) + 100000)
 
     def is_account_locked(self):
         """Check if account is locked and unlock if lock period expired"""
@@ -111,8 +121,8 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def generate_verification_otp(self):
         """Generate a 6-digit verification OTP and set expiration time"""
-        import random
-        self.otp = str(random.randint(100000, 999999))
+        otp = self._generate_otp()
+        self.otp = make_password(otp)
         self.otp_created_at = timezone.now()
         self.otp_expires_at = timezone.now() + timedelta(seconds=settings.OTP_EXPIRE_TIMEOUT)  # OTP valid for 10 minutes
 
@@ -120,7 +130,7 @@ class User(AbstractBaseUser,PermissionsMixin):
         self.otp_locked_until = None
 
         self.save()
-        return self.otp
+        return otp
 
     def verify_verification_otp(self, otp):
         # check lock
@@ -141,7 +151,7 @@ class User(AbstractBaseUser,PermissionsMixin):
             return False
 
         # wrong otp
-        if self.otp != otp:
+        if not self._check_otp(self.otp, otp):
             self.otp_attempts += 1
 
             # lock after 5 failed attempts
@@ -163,8 +173,8 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def generate_password_reset_otp(self):
         """Generate a 6-digit password reset OTP and set expiration time"""
-        import random
-        self.password_reset_otp = str(random.randint(100000, 999999))
+        otp = self._generate_otp()
+        self.password_reset_otp = make_password(otp)
         self.password_reset_otp_created_at = timezone.now()
         self.password_reset_otp_expires_at = timezone.now() + timedelta(seconds=settings.OTP_EXPIRE_TIMEOUT)  # OTP valid for 10 minutes
 
@@ -172,7 +182,7 @@ class User(AbstractBaseUser,PermissionsMixin):
         self.password_reset_otp_locked_until = None
 
         self.save()
-        return self.password_reset_otp
+        return otp
 
     def verify_password_reset_otp(self, otp):
         # check lock
@@ -193,7 +203,7 @@ class User(AbstractBaseUser,PermissionsMixin):
             return False
 
         # wrong otp
-        if self.password_reset_otp != otp:
+        if not self._check_otp(self.password_reset_otp, otp):
             self.password_reset_otp_attempts += 1
 
             # lock after 5 failed attempts
@@ -215,13 +225,13 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def generate_pending_email_otp(self, pending_email):
         """Generate an OTP for pending email change"""
-        import random
         self.pending_email = pending_email.lower()
-        self.pending_email_otp = str(random.randint(100000, 999999))
+        otp = self._generate_otp()
+        self.pending_email_otp = make_password(otp)
         self.pending_email_otp_created_at = timezone.now()
         self.pending_email_otp_expires_at = timezone.now() + timedelta(seconds=settings.OTP_EXPIRE_TIMEOUT)
         self.save()
-        return self.pending_email_otp
+        return otp
 
     def verify_pending_email_otp(self, otp):
         """Verify the provided pending email OTP"""
@@ -231,7 +241,7 @@ class User(AbstractBaseUser,PermissionsMixin):
         if timezone.now() > self.pending_email_otp_expires_at:
             return False
 
-        if self.pending_email_otp != otp:
+        if not self._check_otp(self.pending_email_otp, otp):
             return False
 
         self.pending_email_otp = None
@@ -242,14 +252,14 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def generate_2fa_otp(self):
         """Generate a 6-digit 2FA OTP and set expiration time"""
-        import random
-        self.two_fa_otp = str(random.randint(100000, 999999))
+        otp = self._generate_otp()
+        self.two_fa_otp = make_password(otp)
         self.two_fa_otp_created_at = timezone.now()
         self.two_fa_otp_expires_at = timezone.now() + timedelta(seconds=settings.OTP_EXPIRE_TIMEOUT)  # 2FA OTP valid for 10 minutes
         self.two_fa_attempts = 0
         self.two_fa_locked_until = None
         self.save()
-        return self.two_fa_otp
+        return otp
 
     def verify_2fa_otp(self, otp):
         """Verify the provided 2FA OTP with rate limiting"""
@@ -270,7 +280,7 @@ class User(AbstractBaseUser,PermissionsMixin):
             return False
         
         # Verify OTP
-        if self.two_fa_otp != otp:
+        if not self._check_otp(self.two_fa_otp, otp):
             self.two_fa_attempts += 1
             if self.two_fa_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
                 self.two_fa_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_TIMEOUT)
@@ -297,6 +307,18 @@ class User(AbstractBaseUser,PermissionsMixin):
             return True
         return False
 
+    def has_perm(self,perm,obj=None):
+        "Does the user have a specific permission?"
+        if self.is_superuser:
+            return True
+        return super().has_perm(perm,obj)
+    
+    def has_module_perms(self,app_label):
+        "Does the user have permissions to view the app `app_label`?"
+        if self.is_superuser:
+            return True
+        return super().has_module_perms(app_label)
+
     def __str__(self):
         return self.email
 
@@ -314,18 +336,6 @@ class LoginHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.login_time}"
-    
-    def has_perm(self,perm,obj=None):
-        "Does the user have a specific permission?"
-        if self.is_superuser:
-            return True
-        return super().has_perm(perm,obj)
-    
-    def has_module_perms(self,app_label):
-        "Does the user have permissions to view the app `app_label`?"
-        if self.is_superuser:
-            return True
-        return super().has_module_perms(app_label)
 
 
 class UserSession(models.Model):
@@ -352,6 +362,31 @@ class UserSession(models.Model):
     null=True,
     blank=True
 )
+
+    device_fingerprint = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True
+    )
+
+    browser = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
+    operating_system = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
+    device_type = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True

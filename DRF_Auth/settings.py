@@ -138,20 +138,14 @@ AUTHENTICATION_BACKENDS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'Authentication.authentication.SessionJWTAuthentication',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'login': '10/hour',
-        'verification': '10/hour',
+        'login': '100/hour',
+        'verification': '100/hour',
         'register': '10/hour',
         'password-reset': '10/hour',
     },
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.IsAuthenticated',
-    # ],
-    # 'DEFAULT_RENDERER_CLASSES': [
-    #     'rest_framework.renderers.JSONRenderer',
-    # ]
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ]
@@ -160,7 +154,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1500),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'BLACKLIST_AFTER_ROTATION': True,
     'ROTATE_REFRESH_TOKENS': True,
@@ -195,8 +189,8 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 PASSWORD_RESET_TIMEOUT = 600 # 10 minutes Means verification link expire time
 OTP_EXPIRE_TIMEOUT = 600 # 10 minutes
-OTP_LOCKED_TIMEOUT = 600
-ACCOUNT_LOCKOUT_DURATION = 600 
+OTP_LOCKED_TIMEOUT = 60
+ACCOUNT_LOCKOUT_DURATION = 60
 MAX_WRONG_OTP_ATTEMPTS = 5
 MAX_LOGIN_ATTEMPTS=5
 
