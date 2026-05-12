@@ -141,8 +141,8 @@ REST_FRAMEWORK = {
         'Authentication.authentication.SessionJWTAuthentication',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'login': '100/hour',
-        'verification': '100/hour',
+        'login': '10/hour',
+        'verification': '10/hour',
         'register': '10/hour',
         'password-reset': '10/hour',
     },
@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1500),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'BLACKLIST_AFTER_ROTATION': True,
     'ROTATE_REFRESH_TOKENS': True,
@@ -189,8 +189,8 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 PASSWORD_RESET_TIMEOUT = 600 # 10 minutes Means verification link expire time
 OTP_EXPIRE_TIMEOUT = 600 # 10 minutes
-OTP_LOCKED_TIMEOUT = 60
-ACCOUNT_LOCKOUT_DURATION = 60
+OTP_LOCKED_TIMEOUT = 600
+ACCOUNT_LOCKOUT_DURATION = 600
 MAX_WRONG_OTP_ATTEMPTS = 5
 MAX_LOGIN_ATTEMPTS=5
 
