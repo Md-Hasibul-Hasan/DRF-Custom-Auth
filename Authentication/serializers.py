@@ -44,6 +44,53 @@ class RegistrationSerializer(serializers.ModelSerializer):
     
 
 
+
+
+
+class ResendVerificationEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+
+    class Meta:
+        fields = ['email']
+
+    def validate(self, data):
+        email = data.get('email')
+        if not User.objects.filter(email=email).exists():
+            raise serializers.ValidationError('User does not exist')
+        user = User.objects.get(email=email)
+        if user.is_active:
+            raise serializers.ValidationError('Account already verified')
+        return data
+
+
+
+
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    class Meta:
+        fields = ['email', 'otp']
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('User does not exist')
+        return value.lower()
+
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError('OTP must contain only digits')
+        return value
+
+
+
+
+
+
+
+
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)
     class Meta:
@@ -94,11 +141,11 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value.strip()
 
     def validate_image(self, value):
-        max_size = 2 * 1024 * 1024
+        max_size = 5 * 1024 * 1024
 
         if value.size > max_size:
             raise serializers.ValidationError(
-                "Image size must be below 2MB"
+                "Image size must be below 5MB"
             )
 
         return value
@@ -156,6 +203,7 @@ class UserChangePasswordSerializer(serializers.Serializer):
 
 
 
+
 class SendResetPasswordEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255)
 
@@ -166,24 +214,6 @@ class SendResetPasswordEmailSerializer(serializers.Serializer):
         email = data.get('email')
         if not User.objects.filter(email=email).exists():
             raise serializers.ValidationError('User does not exist')
-        return data
-
-
-
-
-class ResendVerificationEmailSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=255)
-
-    class Meta:
-        fields = ['email']
-
-    def validate(self, data):
-        email = data.get('email')
-        if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('User does not exist')
-        user = User.objects.get(email=email)
-        if user.is_active:
-            raise serializers.ValidationError('Account already verified')
         return data
 
 
@@ -251,22 +281,6 @@ class ResetPasswordWithOTPSerializer(serializers.Serializer):
         return data
 
 
-class VerifyOTPSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=255)
-    otp = serializers.CharField(max_length=6, min_length=6)
-
-    class Meta:
-        fields = ['email', 'otp']
-
-    def validate_email(self, value):
-        if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError('User does not exist')
-        return value.lower()
-
-    def validate_otp(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError('OTP must contain only digits')
-        return value
 
 
 
@@ -417,6 +431,12 @@ class UserSessionSerializer(serializers.ModelSerializer):
             'browser',
             'operating_system',
             'device_type',
+            'location_city',
+            'location_region',
+            'location_country',
+            'location_timezone',
+            'location_latitude',
+            'location_longitude',
             'created_at',
             'last_activity',
             'is_active',

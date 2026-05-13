@@ -202,7 +202,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = ''
 # LOGIN_URL = '/login/'
 
 AUTH_USER_MODEL = 'Authentication.User'
@@ -236,17 +236,11 @@ REST_FRAMEWORK = {
 # swagger
 SPECTACULAR_SETTINGS = {
     'TITLE': 'DRF Custom Auth API',
-
     'DESCRIPTION': 'Auto-generated API schema for DRF Custom Auth',
-
     'VERSION': '1.0.0',
-
     'SERVE_INCLUDE_SCHEMA': False,
-
     'COMPONENT_SPLIT_REQUEST': True,
-
     'SORT_OPERATIONS': False,
-
     'SECURITY_SCHEMES': {
         'BearerAuth': {
             'type': 'http',
@@ -273,20 +267,16 @@ SIMPLE_JWT = {
 
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend'
+    'django.core.mail.backends.smtp.EmailBackend'
 )
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = env_int('EMAIL_PORT', 587)
 EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
-EMAIL_TIMEOUT = 30
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or os.getenv('EMAIL_USER')
-EMAIL_HOST_PASSWORD = (
-    os.getenv('EMAIL_HOST_PASSWORD') or os.getenv('EMAIL_PASSWORD')
-)
-DEFAULT_FROM_EMAIL = os.getenv(
-    'DEFAULT_FROM_EMAIL',
-    os.getenv('EMAIL_FROM', EMAIL_HOST_USER)
-)
+EMAIL_TIMEOUT = env_int('EMAIL_TIMEOUT', 60)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'hasibsorker02@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'pgmg bjzu xikp lcps')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'hasibsorker02@gmail.com')
+
 
 
 
@@ -300,5 +290,9 @@ MAX_WRONG_OTP_ATTEMPTS = env_int('MAX_WRONG_OTP_ATTEMPTS', 5)
 OTP_LOCKED_UNTIL = env_int('OTP_LOCKED_UNTIL', 600)
 MAX_LOGIN_ATTEMPTS = env_int('MAX_LOGIN_ATTEMPTS', 5)
 ACCOUNT_LOCKOUT_DURATION = env_int('ACCOUNT_LOCKOUT_DURATION', 600)
+
+GEOLOCATION_ENABLED = env_bool('GEOLOCATION_ENABLED', True)
+GEOLOCATION_TIMEOUT = env_int('GEOLOCATION_TIMEOUT', 3)
+
 
 

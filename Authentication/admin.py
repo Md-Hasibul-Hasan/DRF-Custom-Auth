@@ -319,6 +319,8 @@ class UserSessionModelAdmin(admin.ModelAdmin):
         'browser',
         'operating_system',
         'device_type',
+        'location_country',
+        'location_city',
         'short_user_agent',
         'created_at',
         'last_activity',
@@ -334,6 +336,10 @@ class UserSessionModelAdmin(admin.ModelAdmin):
         'browser',
         'operating_system',
         'device_type',
+        'location_city',
+        'location_region',
+        'location_country',
+        'location_timezone',
     )
     date_hierarchy = 'last_activity'
     ordering = ('-last_activity',)
@@ -347,6 +353,12 @@ class UserSessionModelAdmin(admin.ModelAdmin):
         'browser',
         'operating_system',
         'device_type',
+        'location_city',
+        'location_region',
+        'location_country',
+        'location_timezone',
+        'location_latitude',
+        'location_longitude',
         'created_at',
         'last_activity',
     )

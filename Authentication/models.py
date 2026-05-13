@@ -56,8 +56,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     failed_login_attempts = models.IntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
-    otp_attempts = models.IntegerField(default=0)
-    otp_locked_until = models.DateTimeField(null=True, blank=True)
+
     
     # Specific OTP/Email sending timestamps for spam protection
     last_verification_otp_sent_at = models.DateTimeField(null=True, blank=True)
@@ -69,6 +68,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     otp = models.CharField(max_length=128, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     otp_expires_at = models.DateTimeField(null=True, blank=True)
+    otp_attempts = models.IntegerField(default=0)
+    otp_locked_until = models.DateTimeField(null=True, blank=True)   
 
     # Password reset OTP fields
     password_reset_otp = models.CharField(max_length=128, null=True, blank=True)
@@ -187,6 +188,7 @@ class User(AbstractBaseUser,PermissionsMixin):
         return otp
 
     def verify_password_reset_otp(self, otp):
+        
         # check lock
         if self.password_reset_otp_locked_until:
             if timezone.now() < self.password_reset_otp_locked_until:
@@ -239,6 +241,8 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def verify_pending_email_otp(self, otp):
         """Verify the provided pending email OTP"""
+
+        # check lock
         if self.pending_email_otp_locked_until:
             if timezone.now() < self.pending_email_otp_locked_until:
                 return False
@@ -247,21 +251,26 @@ class User(AbstractBaseUser,PermissionsMixin):
                 self.pending_email_otp_attempts = 0
                 self.save()
 
+        # check otp exists
         if not self.pending_email or not self.pending_email_otp or not self.pending_email_otp_expires_at:
             return False
 
+        # check expiry
         if timezone.now() > self.pending_email_otp_expires_at:
             return False
 
+        # wrong otp
         if not self._check_otp(self.pending_email_otp, otp):
             self.pending_email_otp_attempts += 1
 
+            # lock after 5 failed attempts
             if self.pending_email_otp_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
                 self.pending_email_otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_UNTIL)
 
             self.save()
             return False
 
+        # success → clear otp
         self.pending_email_otp = None
         self.pending_email_otp_created_at = None
         self.pending_email_otp_expires_at = None
@@ -296,10 +305,11 @@ class User(AbstractBaseUser,PermissionsMixin):
         if not self.two_fa_otp or not self.two_fa_otp_expires_at:
             return False
         
+        # Check expiry
         if timezone.now() > self.two_fa_otp_expires_at:
             return False
         
-        # Verify OTP
+        # Wrong OTP
         if not self._check_otp(self.two_fa_otp, otp):
             self.two_fa_attempts += 1
             if self.two_fa_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
@@ -307,7 +317,7 @@ class User(AbstractBaseUser,PermissionsMixin):
             self.save()
             return False
         
-        # Clear 2FA OTP after successful verification
+        # Success → Clear OTP
         self.two_fa_otp = None
         self.two_fa_otp_created_at = None
         self.two_fa_otp_expires_at = None
@@ -404,6 +414,44 @@ class UserSession(models.Model):
 
     device_type = models.CharField(
         max_length=100,
+        null=True,
+        blank=True
+    )
+
+    location_city = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
+    location_region = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
+    location_country = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
+    location_timezone = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
+    location_latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+
+    location_longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
         null=True,
         blank=True
     )

@@ -170,7 +170,6 @@ class LoginView(APIView):
                         user.save()
                         
                         # Create a temporary token for 2FA verification
-                        # from rest_framework_simplejwt.tokens import RefreshToken
                         temp_access = AccessToken.for_user(user)
                         temp_access.set_exp(lifetime=timedelta(minutes=5))
                         temp_access['requires_2fa'] = True
@@ -303,7 +302,7 @@ class LogoutAllDevicesView(APIView):
 
             return Response(
                 {
-                    'msg': 'Logged out from all devices successfully'
+                    'msg': 'Logged out from all devices successfully. Please login again.'
                 },
                 status=status.HTTP_200_OK
             )
