@@ -82,6 +82,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     pending_email_otp = models.CharField(max_length=128, null=True, blank=True)
     pending_email_otp_created_at = models.DateTimeField(null=True, blank=True)
     pending_email_otp_expires_at = models.DateTimeField(null=True, blank=True)
+    pending_email_otp_attempts = models.IntegerField(default=0)
+    pending_email_otp_locked_until = models.DateTimeField(null=True, blank=True)
     
     # 2FA fields
     is_2fa_enabled = models.BooleanField(default=False)
@@ -156,7 +158,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 
             # lock after 5 failed attempts
             if self.otp_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
-                self.otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_TIMEOUT)
+                self.otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_UNTIL)
 
             self.save()
             return False
@@ -208,7 +210,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 
             # lock after 5 failed attempts
             if self.password_reset_otp_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
-                self.password_reset_otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_TIMEOUT)
+                self.password_reset_otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_UNTIL)
 
             self.save()
             return False
@@ -230,11 +232,21 @@ class User(AbstractBaseUser,PermissionsMixin):
         self.pending_email_otp = make_password(otp)
         self.pending_email_otp_created_at = timezone.now()
         self.pending_email_otp_expires_at = timezone.now() + timedelta(seconds=settings.OTP_EXPIRE_TIMEOUT)
+        self.pending_email_otp_attempts = 0
+        self.pending_email_otp_locked_until = None
         self.save()
         return otp
 
     def verify_pending_email_otp(self, otp):
         """Verify the provided pending email OTP"""
+        if self.pending_email_otp_locked_until:
+            if timezone.now() < self.pending_email_otp_locked_until:
+                return False
+            else:
+                self.pending_email_otp_locked_until = None
+                self.pending_email_otp_attempts = 0
+                self.save()
+
         if not self.pending_email or not self.pending_email_otp or not self.pending_email_otp_expires_at:
             return False
 
@@ -242,11 +254,19 @@ class User(AbstractBaseUser,PermissionsMixin):
             return False
 
         if not self._check_otp(self.pending_email_otp, otp):
+            self.pending_email_otp_attempts += 1
+
+            if self.pending_email_otp_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
+                self.pending_email_otp_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_UNTIL)
+
+            self.save()
             return False
 
         self.pending_email_otp = None
         self.pending_email_otp_created_at = None
         self.pending_email_otp_expires_at = None
+        self.pending_email_otp_attempts = 0
+        self.pending_email_otp_locked_until = None
         self.save()
         return True
 
@@ -283,7 +303,7 @@ class User(AbstractBaseUser,PermissionsMixin):
         if not self._check_otp(self.two_fa_otp, otp):
             self.two_fa_attempts += 1
             if self.two_fa_attempts >= settings.MAX_WRONG_OTP_ATTEMPTS:
-                self.two_fa_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_TIMEOUT)
+                self.two_fa_locked_until = timezone.now() + timedelta(seconds=settings.OTP_LOCKED_UNTIL)
             self.save()
             return False
         

@@ -90,6 +90,9 @@ class LoginView(APIView):
                 
                 # Check if account is locked
                 if user.is_account_locked():
+                    remaining_seconds = int(
+                        (user.locked_until - timezone.now()).total_seconds()
+                    )
                     LoginHistory.objects.create(
                         user=user,
                         ip_address=get_client_ip(request),
@@ -97,8 +100,15 @@ class LoginView(APIView):
                         is_successful=False,
                         failure_reason='Account locked'
                     )
+
+                    
                     return Response(
-                        {'error': 'Account is locked. Try again later.'},
+                        {
+                            'error': (
+                                'Account is locked. '
+                                f'Try again after {remaining_seconds} seconds.'
+                            )
+                        },
                         status=status.HTTP_403_FORBIDDEN
                     )
                 
@@ -147,7 +157,10 @@ class LoginView(APIView):
                         otp = user.generate_2fa_otp()
                         email_data = {
                             'email_subject': 'Your 2FA Verification Code',
-                            'email_body': f'Your 2FA verification code is: {otp}\n\nThis code will expire in 5 minutes.',
+                            'email_body': (
+                                f'Your 2FA verification code is: {otp}\n\n'
+                                f'This code will expire in {settings.OTP_EXPIRE_TIMEOUT // 60} minutes.'
+                            ),
                             'to_email': user.email
                         }
                         Util.send_email(email_data)
@@ -213,6 +226,20 @@ class LoginView(APIView):
                         is_successful=False,
                         failure_reason='Invalid password'
                     )
+
+                    if user.locked_until and timezone.now() < user.locked_until:
+                        remaining_seconds = int(
+                            (user.locked_until - timezone.now()).total_seconds()
+                        )
+                        return Response(
+                            {
+                                'error': (
+                                    'Account is locked. '
+                                    f'Try again after {remaining_seconds} seconds.'
+                                )
+                            },
+                            status=status.HTTP_403_FORBIDDEN
+                        )
                     
                     return Response(
                         {'error': 'Invalid email or password'},

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import status
@@ -64,7 +65,11 @@ class Setup2FAView(APIView):
             # Send OTP to email
             email_data = {
                 'email_subject': 'Setup Two-Factor Authentication',
-                'email_body': f'Your 2FA setup verification code is: {otp}\n\nThis code will expire in 5 minutes. Do not share this code with anyone.',
+                'email_body': (
+                    f'Your 2FA setup verification code is: {otp}\n\n'
+                    f'This code will expire in {settings.OTP_EXPIRE_TIMEOUT // 60} minutes. '
+                    'Do not share this code with anyone.'
+                ),
                 'to_email': user.email
             }
             Util.send_email(email_data)
@@ -105,6 +110,46 @@ class Enable2FAView(APIView):
         serializer = Enable2FASerializer(data=request.data, context={'user': user})
         
         if serializer.is_valid(raise_exception=True):
+            now = timezone.now()
+
+            if user.two_fa_locked_until and now < user.two_fa_locked_until:
+                remaining_seconds = int(
+                    (user.two_fa_locked_until - now).total_seconds()
+                )
+                return Response(
+                    {
+                        'error': (
+                            'Too many failed attempts. '
+                            f'Try again after {remaining_seconds} seconds.'
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            otp = serializer.validated_data.get('otp')
+
+            if not user.verify_2fa_otp(otp):
+                now = timezone.now()
+
+                if user.two_fa_locked_until and now < user.two_fa_locked_until:
+                    remaining_seconds = int(
+                        (user.two_fa_locked_until - now).total_seconds()
+                    )
+                    return Response(
+                        {
+                            'error': (
+                                'Too many failed attempts. '
+                                f'Try again after {remaining_seconds} seconds.'
+                            )
+                        },
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                return Response(
+                    {'error': 'Invalid or expired OTP'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             # Enable 2FA for user
             user.is_2fa_enabled = True
             user.two_fa_method = 'email'
@@ -167,6 +212,9 @@ class Verify2FAView(APIView):
                 
                 # Check if 2FA is locked
                 if user.is_2fa_locked():
+                    remaining_seconds = int(
+                        (user.two_fa_locked_until - timezone.now()).total_seconds()
+                    )
                     from ..models import TwoFALog
                     TwoFALog.objects.create(
                         user=user,
@@ -176,7 +224,12 @@ class Verify2FAView(APIView):
                         status='failed'
                     )
                     return Response(
-                        {'error': '2FA is temporarily locked due to too many failed attempts. Try again in 15 minutes.'},
+                        {
+                            'error': (
+                                '2FA is temporarily locked due to too many failed attempts. '
+                                f'Try again after {remaining_seconds} seconds.'
+                            )
+                        },
                         status=status.HTTP_403_FORBIDDEN
                     )
                 
@@ -225,6 +278,21 @@ class Verify2FAView(APIView):
                         user_agent=get_user_agent(request),
                         status='failed'
                     )
+
+                    now = timezone.now()
+                    if user.two_fa_locked_until and now < user.two_fa_locked_until:
+                        remaining_seconds = int(
+                            (user.two_fa_locked_until - now).total_seconds()
+                        )
+                        return Response(
+                            {
+                                'error': (
+                                    'Too many failed attempts. '
+                                    f'Try again after {remaining_seconds} seconds.'
+                                )
+                            },
+                            status=status.HTTP_403_FORBIDDEN
+                        )
                     
                     return Response(
                         {'error': 'Invalid or expired 2FA code'},
@@ -233,7 +301,7 @@ class Verify2FAView(APIView):
                     
             except Exception as e:
                 return Response(
-                    {'error': str(e)},
+                    {'error': 'Failed to verify 2FA code'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         
@@ -254,6 +322,20 @@ class Disable2FAView(APIView):
         serializer = Disable2FASerializer(data=request.data, context={'user': user})
         
         if serializer.is_valid(raise_exception=True):
+            if user.is_2fa_locked():
+                remaining_seconds = int(
+                    (user.two_fa_locked_until - timezone.now()).total_seconds()
+                )
+                return Response(
+                    {
+                        'error': (
+                            '2FA is temporarily locked due to too many failed attempts. '
+                            f'Try again after {remaining_seconds} seconds.'
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
             # Disable 2FA
             user.is_2fa_enabled = False
             user.two_fa_method = None

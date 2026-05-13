@@ -2,22 +2,65 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=None):
+    value = os.getenv(name)
+    if value is None:
+        return default or []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def env_int(name, default):
+    return int(os.getenv(name, default))
+
+
+
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)!1#myf_$i=esclsajsg(r6*@4i*a^6d6%oems@htg0-d+nn-s'
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'django-insecure-change-this-local-development-key'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', ['localhost', '127.0.0.1'])
+
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ]
+)
+
+
+
+
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', False)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', False)
+SECURE_HSTS_SECONDS = env_int('SECURE_HSTS_SECONDS', 0)
+
 
 
 # Application definition
@@ -33,7 +76,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    'corsheaders',
+    'corsheaders', # CORS
     # 'Authentication',
     'Authentication.apps.AuthenticationConfig',
     'drf_spectacular', #swagger
@@ -42,6 +85,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', #whitenoise
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # CORS
     'django.middleware.common.CommonMiddleware',
@@ -117,8 +161,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+#Whitenoise storage
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
@@ -186,7 +241,8 @@ SPECTACULAR_SETTINGS = {
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1500),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'BLACKLIST_AFTER_ROTATION': True,
     'ROTATE_REFRESH_TOKENS': True,
@@ -195,23 +251,24 @@ SIMPLE_JWT = {
 }
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-
-]
 
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER =  'hasibsorker02@gmail.com'
-# EMAIL_HOST_PASSWORD = 'pgmg bjzu xikp lcps'     
-# DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_FROM')
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = env_int('EMAIL_PORT', 587)
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or os.getenv('EMAIL_USER')
+EMAIL_HOST_PASSWORD = (
+    os.getenv('EMAIL_HOST_PASSWORD') or os.getenv('EMAIL_PASSWORD')
+)
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    os.getenv('EMAIL_FROM', EMAIL_HOST_USER)
+)
 
 
 
@@ -219,11 +276,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For developm
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 
-PASSWORD_RESET_TIMEOUT = 600 # 10 minutes Means verification link expire time
-OTP_EXPIRE_TIMEOUT = 600 # 10 minutes
-OTP_LOCKED_TIMEOUT = 600
-ACCOUNT_LOCKOUT_DURATION = 600
-MAX_WRONG_OTP_ATTEMPTS = 5
-MAX_LOGIN_ATTEMPTS=5
+PASSWORD_RESET_TIMEOUT = env_int('PASSWORD_RESET_TIMEOUT', 600)
+OTP_EXPIRE_TIMEOUT = env_int('OTP_EXPIRE_TIMEOUT', 600)
+MAX_WRONG_OTP_ATTEMPTS = env_int('MAX_WRONG_OTP_ATTEMPTS', 5)
+OTP_LOCKED_UNTIL = env_int('OTP_LOCKED_UNTIL', 600)
+MAX_LOGIN_ATTEMPTS = env_int('MAX_LOGIN_ATTEMPTS', 5)
+ACCOUNT_LOCKOUT_DURATION = env_int('ACCOUNT_LOCKOUT_DURATION', 600)
 
 

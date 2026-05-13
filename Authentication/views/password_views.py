@@ -40,13 +40,13 @@ class ChangePasswordView(APIView):
 
             email_data = {
                 'email_subject': 'Password changed',
-                'email_body': 'Your password was changed successfully.',
+                'email_body': 'Your password was changed successfully. Please login with your new password. If you did not perform this action, contact support.',
                 'to_email': user.email
             }
             Util.send_email(email_data)
 
             return Response(
-                {'msg': 'Password Changed Successfully'},
+                {'msg': 'Password Changed Successfully. Please login with your new password.'},
                 status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -157,13 +157,13 @@ class ResetPasswordView(APIView):
                 
                 email_data = {
                     'email_subject': 'Password reset completed',
-                    'email_body': 'Your password was reset successfully. If you did not perform this action, contact support.',
+                    'email_body': 'Your password was reset successfully. Please login with your new password. If you did not perform this action, contact support.',
                     'to_email': user.email
                 }
                 Util.send_email(email_data)
 
                 return Response(
-                    {'msg': 'Password Reset Successfully'},
+                    {'msg': 'Password Reset Successfully. Please login with your new password.'},
                     status=status.HTTP_200_OK
                 )
 
@@ -199,6 +199,24 @@ class ResetPasswordWithOTPView(APIView):
             try:
                 user = User.objects.get(email=email)
 
+                if user.password_reset_otp_locked_until:
+                    now = timezone.now()
+                    if now < user.password_reset_otp_locked_until:
+                        remaining_seconds = int(
+                            (
+                                user.password_reset_otp_locked_until - now
+                            ).total_seconds()
+                        )
+                        return Response(
+                            {
+                                'error': (
+                                    'Too many failed attempts. '
+                                    f'Try again after {remaining_seconds} seconds.'
+                                )
+                            },
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
                 if user.verify_password_reset_otp(otp):
                     user.set_password(password)
                     user.save()
@@ -218,6 +236,26 @@ class ResetPasswordWithOTPView(APIView):
                         status=status.HTTP_200_OK
                     )
                 else:
+                    now = timezone.now()
+                    if (
+                        user.password_reset_otp_locked_until and
+                        now < user.password_reset_otp_locked_until
+                    ):
+                        remaining_seconds = int(
+                            (
+                                user.password_reset_otp_locked_until - now
+                            ).total_seconds()
+                        )
+                        return Response(
+                            {
+                                'error': (
+                                    'Too many failed attempts. '
+                                    f'Try again after {remaining_seconds} seconds.'
+                                )
+                            },
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
                     return Response(
                         {'error': 'Invalid or expired OTP'},
                         status=status.HTTP_400_BAD_REQUEST

@@ -165,7 +165,7 @@ class SendResetPasswordEmailSerializer(serializers.Serializer):
     def validate(self, data):
         email = data.get('email')
         if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('User exists or not cant say')
+            raise serializers.ValidationError('User does not exist')
         return data
 
 
@@ -288,12 +288,6 @@ class ChangeEmailSerializer(serializers.Serializer):
             raise serializers.ValidationError({'password': 'Password is incorrect'})
         return data
 
-    def save(self, **kwargs):
-        user = self.context['user']
-        new_email = self.validated_data.get('new_email')
-        user.generate_pending_email_otp(new_email)
-        return user
-
 
 
 class ConfirmChangeEmailSerializer(serializers.Serializer):
@@ -316,8 +310,8 @@ class ConfirmChangeEmailSerializer(serializers.Serializer):
 
     def validate(self, data):
         user = self.context['user']
-        if not user.verify_pending_email_otp(data.get('otp')):
-            raise serializers.ValidationError('Invalid or expired OTP')
+        if not user.pending_email_otp:
+            raise serializers.ValidationError('No pending email change request found')
         return data
 
     def save(self, **kwargs):
@@ -327,6 +321,8 @@ class ConfirmChangeEmailSerializer(serializers.Serializer):
         user.pending_email_otp = None
         user.pending_email_otp_created_at = None
         user.pending_email_otp_expires_at = None
+        user.pending_email_otp_attempts = 0
+        user.pending_email_otp_locked_until = None
         user.save()
         return user
 
@@ -366,10 +362,7 @@ class Enable2FASerializer(serializers.Serializer):
         otp = data.get('otp')
         if not user.two_fa_otp:
             raise serializers.ValidationError('No pending 2FA setup. Please setup 2FA first.')
-        
-        if not user.verify_2fa_otp(otp):
-            raise serializers.ValidationError('Invalid or expired OTP')
-        
+
         return data
 
 
@@ -405,10 +398,6 @@ class Disable2FASerializer(serializers.Serializer):
         
         if not user.is_2fa_enabled:
             raise serializers.ValidationError('2FA is not enabled for this user')
-        
-        # Verify current 2FA OTP for security
-        if user.is_2fa_locked():
-            raise serializers.ValidationError('2FA is temporarily locked due to too many failed attempts')
         
         return data
 

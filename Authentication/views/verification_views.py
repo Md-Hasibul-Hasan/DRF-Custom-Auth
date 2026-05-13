@@ -81,12 +81,16 @@ class VerifyOTPView(APIView):
                     )
 
                 if user.otp_locked_until:
-                    if timezone.now() < user.otp_locked_until:
+                    now = timezone.now()
+                    if now < user.otp_locked_until:
+                        remaining_seconds = int(
+                            (user.otp_locked_until - now).total_seconds()
+                        )
                         return Response(
                             {
                                 'error': (
                                     'Too many failed attempts. '
-                                    'Try again later.'
+                                    f'Try again after {remaining_seconds} seconds.'
                                 )
                             },
                             status=status.HTTP_403_FORBIDDEN
@@ -101,6 +105,21 @@ class VerifyOTPView(APIView):
                         status=status.HTTP_200_OK
                     )
                 else:
+                    now = timezone.now()
+                    if user.otp_locked_until and now < user.otp_locked_until:
+                        remaining_seconds = int(
+                            (user.otp_locked_until - now).total_seconds()
+                        )
+                        return Response(
+                            {
+                                'error': (
+                                    'Too many failed attempts. '
+                                    f'Try again after {remaining_seconds} seconds.'
+                                )
+                            },
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
                     return Response(
                         {"error": "Invalid or expired OTP"},
                         status=status.HTTP_400_BAD_REQUEST

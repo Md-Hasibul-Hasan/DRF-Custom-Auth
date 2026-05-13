@@ -8,6 +8,7 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from ..models import *
 from ..serializers import *
+from ..renderers import UserRenderer
 from .helpers import create_user_session_with_device_tracking
 
 from drf_spectacular.utils import extend_schema
@@ -15,6 +16,7 @@ from drf_spectacular.utils import extend_schema
 
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
+    renderer_classes = [UserRenderer]
     serializer_class = GoogleLoginSerializer
 
     @extend_schema(request=GoogleLoginSerializer)

@@ -59,6 +59,8 @@ class UserModelAdmin(BaseUserAdmin):
         'pending_email_otp',
         'pending_email_otp_created_at',
         'pending_email_otp_expires_at',
+        'pending_email_otp_attempts',
+        'pending_email_otp_locked_until',
         'two_fa_otp',
         'two_fa_otp_created_at',
         'two_fa_otp_expires_at',
@@ -86,6 +88,7 @@ class UserModelAdmin(BaseUserAdmin):
             'fields': ('name', 'image', 'image_preview'),
         }),
         (_('Permissions'), {
+            'classes': ('collapse',),
             'fields': (
                 'is_active',
                 'is_staff',
@@ -95,6 +98,7 @@ class UserModelAdmin(BaseUserAdmin):
             ),
         }),
         (_('Account Security'), {
+            'classes': ('collapse',),
             'fields': (
                 'failed_login_attempts',
                 'locked_until',
@@ -128,9 +132,12 @@ class UserModelAdmin(BaseUserAdmin):
                 'pending_email_otp',
                 'pending_email_otp_created_at',
                 'pending_email_otp_expires_at',
+                'pending_email_otp_attempts',
+                'pending_email_otp_locked_until',
             ),
         }),
         (_('Two-Factor Authentication'), {
+            'classes': ('collapse',),
             'fields': (
                 'is_2fa_enabled',
                 'two_fa_method',
@@ -208,6 +215,8 @@ class UserModelAdmin(BaseUserAdmin):
             otp_locked_until=None,
             password_reset_otp_attempts=0,
             password_reset_otp_locked_until=None,
+            pending_email_otp_attempts=0,
+            pending_email_otp_locked_until=None,
             two_fa_attempts=0,
             two_fa_locked_until=None,
         )
@@ -249,6 +258,8 @@ class UserModelAdmin(BaseUserAdmin):
             pending_email_otp=None,
             pending_email_otp_created_at=None,
             pending_email_otp_expires_at=None,
+            pending_email_otp_attempts=0,
+            pending_email_otp_locked_until=None,
             two_fa_otp=None,
             two_fa_otp_created_at=None,
             two_fa_otp_expires_at=None,

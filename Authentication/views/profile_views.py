@@ -135,6 +135,54 @@ class ConfirmChangeEmailView(APIView):
             context={'user': user}
         )
         if serializer.is_valid(raise_exception=True):
+            now = timezone.now()
+
+            if (
+                user.pending_email_otp_locked_until and
+                now < user.pending_email_otp_locked_until
+            ):
+                remaining_seconds = int(
+                    (user.pending_email_otp_locked_until - now).total_seconds()
+                )
+                return Response(
+                    {
+                        'error': (
+                            'Too many failed attempts. '
+                            f'Try again after {remaining_seconds} seconds.'
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            otp = serializer.validated_data.get('otp')
+
+            if not user.verify_pending_email_otp(otp):
+                now = timezone.now()
+
+                if (
+                    user.pending_email_otp_locked_until and
+                    now < user.pending_email_otp_locked_until
+                ):
+                    remaining_seconds = int(
+                        (
+                            user.pending_email_otp_locked_until - now
+                        ).total_seconds()
+                    )
+                    return Response(
+                        {
+                            'error': (
+                                'Too many failed attempts. '
+                                f'Try again after {remaining_seconds} seconds.'
+                            )
+                        },
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                return Response(
+                    {'error': 'Invalid or expired OTP'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             serializer.save()
 
             email_data = {
