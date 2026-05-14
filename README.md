@@ -109,6 +109,34 @@ The system also supports Google OAuth login and registration. Authenticated user
 
 Sensitive operations are logged and protected with rate limits, account lockout rules, token blacklisting, session deactivation, and security notifications.
 
+
+
+## Security Behavior
+
+After logout:
+
+- The refresh token is blacklisted.
+- The user session is marked inactive.
+- Session-aware validation prevents access with tokens tied to inactive sessions.
+
+After password change:
+
+- Existing sessions are revoked.
+- Other devices are logged out.
+- The user must authenticate again with the new password.
+
+Account protection includes:
+
+- OTP expiration
+- OTP attempt locking
+- Login rate limiting
+- Account lockout after repeated failures
+- Device, browser, OS, IP address, and user-agent tracking
+- Security logging for sensitive authentication events
+
+
+
+
 ## Installation
 
 ### 1. Clone the Repository
@@ -339,28 +367,6 @@ The command cleans:
 - Old `TwoFALog` records
 - Expired SimpleJWT outstanding and blacklisted tokens
 
-## Security Behavior
-
-After logout:
-
-- The refresh token is blacklisted.
-- The user session is marked inactive.
-- Session-aware validation prevents access with tokens tied to inactive sessions.
-
-After password change:
-
-- Existing sessions are revoked.
-- Other devices are logged out.
-- The user must authenticate again with the new password.
-
-Account protection includes:
-
-- OTP expiration
-- OTP attempt locking
-- Login rate limiting
-- Account lockout after repeated failures
-- Device, browser, OS, IP address, and user-agent tracking
-- Security logging for sensitive authentication events
 
 ## Project Structure
 
