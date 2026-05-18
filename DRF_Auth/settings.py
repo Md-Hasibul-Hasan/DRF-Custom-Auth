@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     # 'Authentication',
     'Authentication.apps.AuthenticationConfig',
     'drf_spectacular', #swagger
+    'anymail', #email
 
 ]
 
@@ -113,29 +114,29 @@ WSGI_APPLICATION = 'DRF_Auth.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
 # DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.getenv('DB_NAME', 'postgres'),
-#         "USER": os.getenv('DB_USER', 'postgres'),
-#         "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
-#         "HOST": os.getenv('DB_HOST', 'localhost'),
-#         "PORT": os.getenv('DB_PORT', '5432'),
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
 
-# DB_SCHEMA = os.getenv('DB_SCHEMA')
-# if DB_SCHEMA:
-#     DATABASES['default']['OPTIONS'] = {
-#         'options': f'-c search_path={DB_SCHEMA}'
-#     }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv('DB_NAME', 'postgres'),
+        "USER": os.getenv('DB_USER', 'postgres'),
+        "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
+        "HOST": os.getenv('DB_HOST', 'localhost'),
+        "PORT": os.getenv('DB_PORT', '5432'),
+    }
+}
+
+DB_SCHEMA = os.getenv('DB_SCHEMA')
+if DB_SCHEMA:
+    DATABASES['default']['OPTIONS'] = {
+        'options': f'-c search_path={DB_SCHEMA}'
+    }
 
 
 # Password validation
@@ -259,18 +260,28 @@ SIMPLE_JWT = {
 
 
 
-EMAIL_BACKEND = os.getenv(
-    'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend'
-)
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = env_int('EMAIL_PORT', 587)
-EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
-EMAIL_TIMEOUT = env_int('EMAIL_TIMEOUT', 60)
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'hasibsorker02@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xxx-xxx-xxx')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'hasibsorker02@gmail.com')
+# EMAIL_BACKEND = os.getenv(
+#     'EMAIL_BACKEND',
+#     'django.core.mail.backends.smtp.EmailBackend'
+# )
+# EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+# EMAIL_PORT = env_int('EMAIL_PORT', 587)
+# EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+# EMAIL_TIMEOUT = env_int('EMAIL_TIMEOUT', 60)
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'hasibsorker02@gmail.com')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xxx-xxx-xxx')
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'hasibsorker02@gmail.com')
 
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'test@gmail.com')
+
+ANYMAIL = {
+    "BREVO_API_KEY": os.getenv('EMAIL_HOST_PASSWORD', 'xxx-xxx-xxx'),
+}
+
+print('Default from email: ', DEFAULT_FROM_EMAIL)
+print('anymail api key: ', ANYMAIL['BREVO_API_KEY'])
 
 
 
